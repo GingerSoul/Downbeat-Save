@@ -4,5 +4,4 @@ jQuery(function($){
 	
 	$('body').data('user','pro');
 
-
 });
