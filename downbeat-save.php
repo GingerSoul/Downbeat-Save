@@ -17,7 +17,10 @@ class DownBeat_Save {
         add_action( 'init', array( __CLASS__, 'cpt' ) );
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'scripts' ) );
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'conditional_scripts' ) );
-        add_action( 'wp_ajax_downbeat_save', array( __CLASS__, 'ajax' ) );
+        add_action( 'wp_ajax_downbeat_load', array( __CLASS__, 'ajax_downbeat_load' ) );
+        add_action( 'wp_ajax_downbeat_save', array( __CLASS__, 'ajax_downbeat_save' ) );
+        add_action( 'wp_ajax_downbeat_update', array( __CLASS__, 'ajax_downbeat_update' ) );
+        add_action( 'wp_ajax_downbeat_delete', array( __CLASS__, 'ajax_downbeat_delete' ) );
         add_shortcode( 'downbeat', array( __CLASS__, 'shortcode' ) );
     }
 
@@ -61,36 +64,176 @@ class DownBeat_Save {
      * Enqueue front end scripts
      */
     public static function scripts() {
-        wp_register_script( 'downbeat_save', plugins_url( 'assets/js/downbeat-save.js', __FILE__ ), array( 'jquery' ) );
-        $data = array(
-            'ajaxurl' 		=> admin_url( 'admin-ajax.php' ),
-            'title' 			=> __( 'Please enter a title for the set:'. 'downbeat-save' ),
-            'placeholder' => __( 'My Set Title', 'downbeat-save' ),
-            'item' 				=> '<li><a href="%link%">%title%</a></li>',
-        );
-        wp_localize_script( 'downbeat_save', 'downbeat_save_data', $data );
-        wp_enqueue_script( 'downbeat_save' );
+        wp_register_script( 'downbeat-methods', plugins_url( 'assets/js/downbeat-methods.js', __FILE__ ), array( 'jquery' ) );
+        wp_localize_script( 'downbeat-methods', 'dbwp',  array(
+            'ajaxurl' 		=> admin_url( 'admin-ajax.php' )
+        ) );
+        wp_enqueue_script( 'downbeat-methods' );
     }
 
     /**
-     * Handle frontend AJAX requests sent to action `downbeat_save`
+     * AJAX Handler: Loads Downbeat Sessions for logged in user
      */
-    public static function ajax() {
+    public static function ajax_downbeat_load() {
+
+        /* if user is not logged in then return empty data set */
+        if ( is_user_logged_in() ) {
+            $sessions_prepared['success'] = false;
+            $sessions_prepared['error'] = 'user is not logged in';
+            $sessions_prepared['sessions'] = array();
+            return wp_send_json_failure( $sessions_prepared );
+            die();
+        }
+
+        $current_user_id = get_current_user_id();
+
+        $args = array(
+            'post_per_page' => -1,
+            'post_type' 	=> 'downbeat',
+            'post_status'	=> 'publish',
+            'author' => $current_user_id,
+            'orderby'          => 'date',
+            'order'            => 'DESC',
+        );
+
+        $sessions = get_posts( $args );
+        $sessions_prepared = array();
+
+        if (!$sessions) {
+            $sessions_prepared['success'] = true;
+            $sessions_prepared['sessions'] = array();
+            return wp_send_json_success( $sessions_prepared );
+            die();
+        }
+
+        $sessions_prepared = array();
+        $sessions_prepared['success'] = true;
+        $sessions_prepared['sessions'] = array();
+
+        foreach ($sessions as $key => $session) {
+            $config = get_post_meta( $session->ID, 'downbeat_config' , true );
+            $sessions_prepared['sessions'][$key]['id'] = $session->ID;
+            $sessions_prepared['sessions'][$key]['title'] = $session->post_title;
+            $sessions_prepared['sessions'][$key]['config'] = $config;
+        }
+
+        wp_send_json_success( $sessions_prepared );
+        die();
+    }
+
+    /**
+     * AJAX Handler: Saves a downbeat session
+     */
+    public static function ajax_downbeat_save() {
+
+        /* if user is not logged in then return empty data set */
+        if ( is_user_logged_in() ) {
+            $sessions_prepared['success'] = false;
+            $sessions_prepared['error'] = 'user is not logged in';
+            return wp_send_json_success( $sessions_prepared );
+            die();
+        }
+
         $args = array(
             'post_type' 	=> 'downbeat',
             'post_status'	=> 'publish',
             'post_author' => get_current_user_id(),
             'post_title' 	=> $_REQUEST['title'] ? sanitize_text_field($_REQUEST['title']) : date('Y-m-d h:i:s'),
         );
+
         $post_id  = wp_insert_post( $args );
-        update_post_meta( $post_id, 'downbeat_data', esc_url_raw($_REQUEST['link']) );
+
+        update_post_meta( $post_id, 'downbeat_config', sanitize_text_field($_REQUEST['config']) );
+
         $data = array(
             'id'	 	=> 	$post_id,
-            'link' 	=> esc_url_raw($_REQUEST['link']),
+            'config' 	=> sanitize_text_field($_REQUEST['config']),
             'title' => $args['post_title'],
         );
+
         wp_send_json_success( $data );
         die();
+    }
+
+    /**
+     * AJAX Handler: Updates a downbeat session.
+     */
+    public static function ajax_downbeat_update() {
+
+        $session_id = (int) $_REQUEST['id'];
+
+        /* Make sure this call request is coming from a user with ownership */
+        if (!self::current_user_owns_session( $session_id )) {
+            wp_send_json_failure( array(
+                'error' => 'Calling user does not own session ID',
+            ) );
+            die();
+        }
+
+        $args = array(
+            'ID' => $session_id,
+            'post_title' 	=> $_REQUEST['title'] ? sanitize_text_field($_REQUEST['title']) : date('Y-m-d h:i:s'),
+        );
+
+        wp_update_post( $args );
+
+        update_post_meta( $session_id , 'downbeat_config', sanitize_text_field($_REQUEST['config']) );
+
+        $data = array(
+            'id'	 	=> 	$session_id,
+        );
+
+        wp_send_json_success( $data );
+        die();
+    }
+
+    /**
+     * AJAX Handler : Deletes a downbeat session
+     */
+    public static function ajax_downbeat_delete() {
+
+        $session_id = (int) $_REQUEST['id'];
+
+        /* Make sure this call request is coming from a user with ownership */
+        if (!self::current_user_owns_session( $session_id )) {
+            /* throw error */
+            wp_send_json_failure( array(
+                'error' => 'Calling user does not own session ID',
+            ) );
+            die();
+        }
+
+
+        $args = array(
+            'ID' => $session_id
+        );
+
+        wp_delete_post( $args );
+
+        $data = array(
+            'id'	 	=> 	$session_id,
+        );
+
+        wp_send_json_success( $data );
+        die();
+    }
+
+    /**
+     * @param $session_id
+     * @returns BOOL true when ownership verified
+     */
+    public static function current_user_owns_session( $session_id ) {
+
+        $session = get_post(array(
+            'ID' => $session_id
+        ));
+
+        if ( get_current_user_id() === $session->post_author ) {
+            return true;
+        }
+
+        return false;
+
     }
 
     /**
