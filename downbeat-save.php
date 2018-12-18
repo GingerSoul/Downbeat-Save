@@ -244,7 +244,7 @@ class DownBeat_Save {
         );
         $my_query = new WP_Query( $args );
         while ( $my_query->have_posts() ) : $my_query->the_post();
-            $return .= "<li><a href=\"".get_post_meta( $my_query->post->ID, 'downbeat_data', true )."\">".get_the_title( $my_query->post->ID )."</a></li>";
+            $return .= "<li><a href=\"".get_post_meta( $my_query->post->ID, 'downbeat_config', true )."\">".get_the_title( $my_query->post->ID )."</a></li>";
         endwhile;
         $return .= '</ul>';
         return $return;
