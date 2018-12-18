@@ -77,11 +77,11 @@ class DownBeat_Save {
     public static function ajax_downbeat_load() {
 
         /* if user is not logged in then return empty data set */
-        if ( is_user_logged_in() ) {
-            $sessions_prepared['success'] = false;
+        if ( !is_user_logged_in() ) {
+            $sessions_prepared = array();
             $sessions_prepared['error'] = 'user is not logged in';
             $sessions_prepared['sessions'] = array();
-            return wp_send_json_failure( $sessions_prepared );
+            wp_send_json_error( $sessions_prepared );
             die();
         }
 
@@ -100,14 +100,12 @@ class DownBeat_Save {
         $sessions_prepared = array();
 
         if (!$sessions) {
-            $sessions_prepared['success'] = true;
             $sessions_prepared['sessions'] = array();
-            return wp_send_json_success( $sessions_prepared );
+            wp_send_json_success( $sessions_prepared );
             die();
         }
 
         $sessions_prepared = array();
-        $sessions_prepared['success'] = true;
         $sessions_prepared['sessions'] = array();
 
         foreach ($sessions as $key => $session) {
@@ -127,8 +125,8 @@ class DownBeat_Save {
     public static function ajax_downbeat_save() {
 
         /* if user is not logged in then return empty data set */
-        if ( is_user_logged_in() ) {
-            $sessions_prepared['success'] = false;
+        if ( !is_user_logged_in() ) {
+            $sessions_prepared = array();
             $sessions_prepared['error'] = 'user is not logged in';
             return wp_send_json_success( $sessions_prepared );
             die();
@@ -164,7 +162,7 @@ class DownBeat_Save {
 
         /* Make sure this call request is coming from a user with ownership */
         if (!self::current_user_owns_session( $session_id )) {
-            wp_send_json_failure( array(
+            wp_send_json_error( array(
                 'error' => 'Calling user does not own session ID',
             ) );
             die();
@@ -197,18 +195,13 @@ class DownBeat_Save {
         /* Make sure this call request is coming from a user with ownership */
         if (!self::current_user_owns_session( $session_id )) {
             /* throw error */
-            wp_send_json_failure( array(
+            wp_send_json_error( array(
                 'error' => 'Calling user does not own session ID',
             ) );
             die();
         }
 
-
-        $args = array(
-            'ID' => $session_id
-        );
-
-        wp_delete_post( $args );
+        wp_trash_post( $session_id );
 
         $data = array(
             'id'	 	=> 	$session_id,
@@ -224,11 +217,9 @@ class DownBeat_Save {
      */
     public static function current_user_owns_session( $session_id ) {
 
-        $session = get_post(array(
-            'ID' => $session_id
-        ));
+        $session = get_post($session_id);
 
-        if ( get_current_user_id() === $session->post_author ) {
+        if ( (int) get_current_user_id() === (int) $session->post_author ) {
             return true;
         }
 

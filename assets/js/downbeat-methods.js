@@ -67,17 +67,16 @@ var downbeatWP = {
      * @reutn JSON {id,success,error}
      */
     'delete' : function(id) {
-        JQuery.post(
+        jQuery.post(
             dbwp.ajaxurl, {
                 'action'	:   'downbeat_delete',
                 'id'        :   id
             },
             function (response) {
-                /* Example success response */
-
                 return response;
             },
             'json'
         )
     }
+
 }
