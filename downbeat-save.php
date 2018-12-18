@@ -82,7 +82,7 @@ class DownBeat_Save {
         $downbeat_config = ($_REQUEST['downbeat_config']) ? $_REQUEST['downbeat_config'] : '';
 
         /* update post meta */
-        update_post_meta( $post_id , 'downbeat_config' , santize_text_field($downbeat_config) );
+        update_post_meta( $post_id , 'downbeat_config' , sanitize_text_field($downbeat_config) );
     }
 
     /**
