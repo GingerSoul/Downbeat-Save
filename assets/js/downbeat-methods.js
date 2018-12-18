@@ -14,7 +14,7 @@
 
     /**
      * Loads saved sessions from CPT
-     * @return JSON [ {id,title,config}, {id,title,config} ]
+     * @return JSON  [ {id,title,config}, {id,title,config} ]
      */
     function load () {
         return new Promise((resolve, reject) => {
@@ -32,7 +32,7 @@
      * Saves Downbeat session
      * @param STRING title
      * @param STRING config
-     * @return JSON {id, success, error}
+     * @return JSON {id}
      */
     function save (title, config) {
         return new Promise((resolve, reject) => {
@@ -53,7 +53,7 @@
      * @param INT id
      * @param STRING title
      * @param STRING config
-     * @return JSON {id, success, error}
+     * @return JSON {id}
      */
     function update (id, title, config) {
         return new Promise((resolve, reject) => {
@@ -73,7 +73,7 @@
     /**
      * Deletes Downbeat session from CPT
      * @param id
-     * @reutn JSON {id,success,error}
+     * @reutn JSON {id}
      */
     function delete_ (id) {
         return new Promise((resolve, reject) => {
