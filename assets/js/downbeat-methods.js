@@ -1,23 +1,32 @@
 /**
  * Downbeat AJAX connectors - Methods for interacting with custom post type
  */
-var downbeatWP = {
+(function () {
+    var downbeatUserSessionCRUD = {
+        load,
+        save,
+        update,
+        delete: delete_,
+    }
+
+    // when the app finishes init and dispatches this method, send the CRUD methods to it
+    document.addEventListener('downbeat:appInited', ({detail}) => detail(downbeatUserSessionCRUD))
 
     /**
      * Loads saved sessions from CPT
-     * @return JSON [ {id,title,config} , {id,title,config} ]
+     * @return JSON [ {id,title,config}, {id,title,config} ]
      */
-    'load' : function() {
-        jQuery.post(
-            dbwp.ajaxurl, {
-                'action'    :   'downbeat_load'
-            },
-            function (response) {
-                return response;
-            },
-            'json'
-        )
-    },
+    function load () {
+        return new Promise((resolve, reject) => {
+            jQuery.post(
+                dbwp.ajaxurl, {
+                    action: 'downbeat_load'
+                },
+                resolve,
+                'json'
+            )
+        })
+    }
 
     /**
      * Saves Downbeat session
@@ -25,58 +34,58 @@ var downbeatWP = {
      * @param STRING config
      * @return JSON {id, success, error}
      */
-    'save' : function( title , config ) {
-        jQuery.post(
-            dbwp.ajaxurl, {
-                'action'	:   'downbeat_save',
-                'title'     :   title,
-                'config'    :   config
-            },
-            function (response) {
-                return response;
-            },
-            'json'
-        )
-    },
+    function save (title, config) {
+        return new Promise((resolve, reject) => {
+            jQuery.post(
+                dbwp.ajaxurl, {
+                    action: 'downbeat_save',
+                    title,
+                    config,
+                },
+                resolve,
+                'json'
+            )
+        })
+    }
 
     /**
      * Updates Downbeat session
      * @param INT id
      * @param STRING title
      * @param STRING config
-     * @return JSON {id , success , error}
+     * @return JSON {id, success, error}
      */
-    'update' : function( id , title , config) {
-        jQuery.post(
-            dbwp.ajaxurl, {
-                'action'	:   'downbeat_update',
-                'id'        :   id,
-                'title'     :   title,
-                'config'    :   config
-            },
-            function (response) {
-                return response;
-            },
-            'json'
-        )
-    },
+    function update (id, title, config) {
+        return new Promise((resolve, reject) => {
+            jQuery.post(
+                dbwp.ajaxurl, {
+                    action: 'downbeat_update',
+                    id,
+                    title,
+                    config,
+                },
+                resolve,
+                'json'
+            )
+        })
+    }
 
     /**
      * Deletes Downbeat session from CPT
      * @param id
      * @reutn JSON {id,success,error}
      */
-    'delete' : function(id) {
-        jQuery.post(
-            dbwp.ajaxurl, {
-                'action'	:   'downbeat_delete',
-                'id'        :   id
-            },
-            function (response) {
-                return response;
-            },
-            'json'
-        )
+    function delete_ (id) {
+        return new Promise((resolve, reject) => {
+            jQuery.post(
+                dbwp.ajaxurl, {
+                    action: 'downbeat_delete',
+                    id
+                },
+                resolve,
+                'json'
+            )
+        })
     }
 
-}
+})()
