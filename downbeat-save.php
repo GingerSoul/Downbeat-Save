@@ -62,7 +62,7 @@ class DownBeat_Save {
         $downbeat_config = get_post_meta( $post->ID, 'downbeat_config', true );
         ?>
         <input type="hidden" name="downbeat_nonce" value="<?php echo wp_create_nonce( basename(__FILE__) ); ?>">
-        <input name="downbeat_config" value="<?php echo $downbeat_config; ?>">
+        <input name="downbeat_config" value="<?php echo $downbeat_config; ?>" style="width:100%;">
         <?php
     }
 
@@ -71,7 +71,8 @@ class DownBeat_Save {
      */
     public static function metabox_save_downbeat_config( $post_id ) {
 
-        if ( !wp_verify_nonce( $_POST['downbeat_nonce'], basename(__FILE__) ) ) {
+
+        if ( !isset( $_POST['downbeat_nonce']) || !wp_verify_nonce( $_POST['downbeat_nonce'], basename(__FILE__) ) ) {
             return $post_id;
         }
 
