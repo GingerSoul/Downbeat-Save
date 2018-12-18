@@ -14,7 +14,9 @@ class DownBeat_Save {
      * Initialize Class
      */
     public static function init() {
-        add_action( 'init', array( __CLASS__, 'cpt' ) );
+        add_action( 'init', array( __CLASS__, 'register_cpt' ) );
+        add_action( 'add_meta_boxes',  array( __CLASS__, 'register_metaboxes' ) );
+        add_action( 'save_post_downbeat',  array( __CLASS__, 'metabox_save_downbeat_config' ) , 10 , 1 );
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'scripts' ) );
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'conditional_scripts' ) );
         add_action( 'wp_ajax_downbeat_load', array( __CLASS__, 'ajax_downbeat_load' ) );
@@ -27,7 +29,7 @@ class DownBeat_Save {
     /**
      * Register custom post type `downbeat`
      */
-    public static function cpt() {
+    public static function register_cpt() {
         $args = array(
             'public' => false,
             'show_ui'=> true,
@@ -37,6 +39,51 @@ class DownBeat_Save {
         register_post_type( 'downbeat', $args );
     }
 
+    /**
+     * Register metaboxes
+     */
+    public static function register_metaboxes() {
+        add_meta_box(
+            'downbeat_config_field', // $id
+            __('Downbeat Configuration String' , 'downbeat-save'), // $title
+            array( __CLASS__ , 'metabox_display_downbeat_config'), // $callback
+            'downbeat', // $screen
+            'normal', // $context
+            'high' // $priority
+        );
+    }
+
+    /**
+     * Metabox Callback: Renders field containing downbeat configuration screen
+     */
+    public static function metabox_display_downbeat_config() {
+        global $post;
+
+        $downbeat_config = get_post_meta( $post->ID, 'downbeat_config', true );
+        ?>
+        <input type="hidden" name="downbeat_nonce" value="<?php echo wp_create_nonce( basename(__FILE__) ); ?>">
+        <input name="downbeat_config" value="<?php echo $downbeat_config; ?>">
+        <?php
+    }
+
+    /**
+     * Saves additional metadat related to the
+     */
+    public static function metabox_save_downbeat_config( $post_id ) {
+
+        if ( !wp_verify_nonce( $_POST['downbeat_nonce'], basename(__FILE__) ) ) {
+            return $post_id;
+        }
+
+        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+            return $post_id;
+        }
+
+        $downbeat_config = ($_REQUEST['downbeat_config']) ? $_REQUEST['downbeat_config'] : '';
+
+        /* update post meta */
+        update_post_meta( $post_id , 'downbeat_config' , santize_text_field($downbeat_config) );
+    }
 
     /**
      * Enqueue frontend scripts and stylesheets conditionally - required Restrict Content Pro plugin to be active
